@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import random
 
 #Website URLs
-author_pages = ['aristotle', 'marcus-aurelius', 'charles-darwin', 'hank-aaron', 'rené-descartes']
+author_pages = ['aristotle', 'marcus-aurelius', 'charles-darwin', 'hank-aaron', 'rené-descartes', 'a-a-milne']
 main_url: str = "https://libquotes.com/"
 
 def fetch_quote() -> list:
@@ -11,6 +11,19 @@ def fetch_quote() -> list:
     for current_author in author_pages:
         page_number: int = 1
 
+        #Find number of pages per author
+        url: str = main_url + current_author
+        page = requests.get(url)
+        soup = BeautifulSoup(page.content, "html.parser")
+        page_footer = soup.find("ul", class_="pager nomargin")
+        
+        if page_footer:
+            pages: list = page_footer.find_all("li")
+            last_page: int = int(pages[-1].text.strip())
+        else:
+            last_page = 1
+        
+        #Get all quotes on all pages
         while True:
             url: str = main_url + current_author
             page = requests.get(url)
@@ -22,17 +35,12 @@ def fetch_quote() -> list:
                 quote: str = div.find("span", class_="quote_span").text.strip()
                 author: str = div.find("span", class_="fda").text.strip()
                 
-                #Append to list
-                data.append([quote, author])
+                #Append to list if quote doesn't exceed character limit
+                if len(quote) <= 100:
+                    data.append([quote, author])
 
-            #Check if there are more pages, break if not
-            if current_author == 'aristotle':
-                next_page = True if page_number < 20 else False
-            elif current_author == 'marcus-aurelius':
-                next_page = True if page_number < 18 else False
-            else:
-                next_page = True if page_number < 13 else False
-                
+            #Check if there are more pages
+            next_page = True if page_number < last_page else False    
 
             #Go to next page if there is one
             page_number += 1

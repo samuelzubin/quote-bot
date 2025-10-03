@@ -1,56 +1,72 @@
 import requests
 from bs4 import BeautifulSoup
 import random
+import json
 
-#Website URLs
-author_pages = ['aristotle', 'marcus-aurelius', 'charles-darwin', 'hank-aaron', 'rené-descartes', 'a-a-milne']
+#Website URL
 main_url: str = "https://libquotes.com/"
+
+#Quote types
+subsection = ['passion-quotes', 'learn-quotes', 'pain-quotes', 'dr-seuss', 'marcus-aurelius', 'hank-aaron', 'a-a-milne']
 
 def fetch_quote() -> list:
     data = []
-    for current_author in author_pages:
-        page_number: int = 1
 
-        #Find number of pages per author
-        url: str = main_url + current_author
-        page = requests.get(url)
-        soup = BeautifulSoup(page.content, "html.parser")
-        page_footer = soup.find("ul", class_="pager nomargin")
-        
-        if page_footer:
-            pages: list = page_footer.find_all("li")
-            last_page: int = int(pages[-1].text.strip())
-        else:
-            last_page = 1
-        
-        #Get all quotes on all pages
-        while True:
-            url: str = main_url + current_author
+    try:
+        with open("data.json", "r") as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        with open("data.json", "w") as f:
+            json.dump(data, f)
+    
+    if data == []:
+        for section in subsection:
+            page_number: int = 1
+
+            #Find number of pages per author
+            url: str = main_url + section
             page = requests.get(url)
             soup = BeautifulSoup(page.content, "html.parser")
+            page_footer = soup.find("ul", class_="pager nomargin")
 
-            #Get quotes and authors
-            quote_divs: list = soup.find_all("div", class_="panel-body")
-            for div in quote_divs:
-                quote: str = div.find("span", class_="quote_span").text.strip()
-                author: str = div.find("span", class_="fda").text.strip()
-                
-                #Append to list if quote doesn't exceed character limit
-                if len(quote) <= 100:
-                    data.append([quote, author])
+            if page_footer:
+                pages: list = page_footer.find_all("li")
+                last_page: int = int(pages[-1].text.strip())
+            else:
+                last_page = 1
+            
+            #Get all quotes on all pages
+            while True:
+                url: str = main_url + section + "/" + str(page_number)
+                page = requests.get(url)
+                soup = BeautifulSoup(page.content, "html.parser")
 
-            #Check if there are more pages
-            next_page = True if page_number < last_page else False    
+                #Get quotes and authors
+                quote_divs: list = soup.find_all("div", class_="panel-body")
+                for div in quote_divs:
+                    quote: str = div.find("span", class_="quote_span").text.strip()
+                    # author: str = div.find("span", class_="fda").text.strip()
+                    
+                    #Append to list if quote doesn't exceed character limit
+                    if len(quote) <= 100:
+                        data.append([quote])
 
-            #Go to next page if there is one
-            page_number += 1
-            url = main_url + str(page_number)
+                #Check if there are more pages
+                next_page = True if page_number < last_page else False    
 
-            if not next_page:
-                break
+                #Go to next page if there is one
+                page_number += 1
+
+                if not next_page:
+                    break
+        
+        with open("data.json", "w") as f:
+            json.dump(data, f, indent=4)
 
     return data if data else []
     
 def get_random_quote(quote_list) -> str:    
     random_value = random.randint(0, len(quote_list))
-    return (f"*{quote_list[random_value][0]}*\n-{quote_list[random_value][1]}")
+    return (f"*{quote_list[random_value][0]}*\n-Jaquavius")
+
+fetch_quote()

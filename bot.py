@@ -2,82 +2,46 @@ import os
 import discord
 import random
 import asyncio
+from discord.ext import commands
+from discord import app_commands
 from dotenv import load_dotenv
 from responses import get_response
 
 #LOAD ENVIRONMENT VARIABLES
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-CHANNEL_ID = int(os.getenv('CHANNEL_ID'))
+GUILD_ID = discord.Object(id=int(os.getenv('GUILD_ID')))
 
-#BOT SETUP
+class Client(commands.Bot):
+    async def on_ready(self):
+        #SYNC COMMANDS
+        try:
+            synced = await self.tree.sync(guild=GUILD_ID)
+            print(f"Synced {len(synced)} command(s) to guild {GUILD_ID}")
+        except Exception as e:
+            print(f"Error syncing commands: {e}")
+
+
+        print(f"{self.user.display_name} is online!")
+
+    async def on_message(self, message):
+        if message.author == self.user:
+            return
+        
+        if 'jaq' in message.content.lower():
+            await message.channel.send(get_response())
+
+    async def on_reaction_add(self, reaction, user):
+        await reaction.message.channel.send('You reacted')
+
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents=intents)
+client = Client(command_prefix="!", intents=intents)
 
-#BOT STARTUP
-@client.event
-async def on_ready() -> None:
-    print(f"{client.user.display_name} is running...")
-    channel = client.get_channel(CHANNEL_ID)
-    if channel:
-        await channel.send("*Jaquavius is now running!\nAs you should be. Because every second you're not running, I'm getting closer...*")
-    client.loop.create_task(daily_quote())
+#CREATE SLASH COMMAND
+@client.tree.command(name="hello", description="Say hello!", guild=GUILD_ID)
+@app_commands.guilds(GUILD_ID)
+async def say_hello(interaction: discord.Interaction):
+    await interaction.response.send_message("Hello!")
 
-#SEND A QUOTE PERIODICALLY
-async def daily_quote() -> None:
-    await client.wait_until_ready()
-    channel = client.get_channel(CHANNEL_ID)
-
-    while not client.is_closed():
-        delay = random.randint(60 * 60 * 5, 60 * 60 * 10)
-        await asyncio.sleep(delay)
-        if channel:
-            quote = get_response(user_input='quote')
-            await channel.send(quote)
-
-#HANDLE INCOMING MESSAGES
-@client.event
-async def on_message(message) -> None:
-    if message.author == client.user:
-        return
-
-    #Log activity
-    username: str = str(message.author)
-    user_message: str = str(message.content)
-    channel: str = str(message.channel)
-
-    log_message = f"{username} said \"{user_message}\" in {channel}"
-    with open("message_log.txt", "a") as log:
-        log.write(log_message + "\n")
-
-    #Send message in channel
-    await send_message(message, user_message)
-
-    #DM User
-    try:
-        random_delay = random.randint(0, 500)
-        await asyncio.sleep(random_delay)
-        await message.author.send("Hi")
-    except Exception as e:
-        print(e)
-
-
-#SEND MESSAGES
-async def send_message(message, user_message) -> None:
-    if not user_message:
-        print("Message was empty because intents were not enabled")
-        return
-    
-    try:
-        response: str = get_response(user_message)
-        await message.channel.send(response)
-    except Exception as e:
-        print(e)
-        
-#MAIN ENTRY POINT
-def main() -> None:
-    client.run(token=TOKEN)
-
-if __name__ == '__main__':
-    main()
+client.run(token=TOKEN)

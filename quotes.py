@@ -67,6 +67,6 @@ def fetch_quote() -> list:
     
 def get_random_quote(quote_list) -> str:    
     random_value = random.randint(0, len(quote_list))
-    return (f"*{quote_list[random_value][0]}*\n-Jaquavius")
+    return (f"*{quote_list[random_value][0]}*")
 
 fetch_quote()

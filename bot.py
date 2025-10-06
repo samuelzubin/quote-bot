@@ -1,9 +1,6 @@
 import os
 import discord
-import random
-import asyncio
 from discord.ext import commands
-from discord import app_commands
 from dotenv import load_dotenv
 from responses import get_response
 import bot_commands

@@ -6,11 +6,13 @@ from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
 from responses import get_response
+import bot_commands
 
 #LOAD ENVIRONMENT VARIABLES
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD_ID = discord.Object(id=int(os.getenv('GUILD_ID')))
+
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -31,17 +33,11 @@ class Client(commands.Bot):
         if 'jaq' in message.content.lower():
             await message.channel.send(get_response())
 
-    async def on_reaction_add(self, reaction, user):
-        await reaction.message.channel.send('You reacted')
-
 intents = discord.Intents.default()
 intents.message_content = True
 client = Client(command_prefix="!", intents=intents)
 
-#CREATE SLASH COMMAND
-@client.tree.command(name="hello", description="Say hello!", guild=GUILD_ID)
-@app_commands.guilds(GUILD_ID)
-async def say_hello(interaction: discord.Interaction):
-    await interaction.response.send_message("Hello!")
+bot_commands.enable_commands(client)
+
 
 client.run(token=TOKEN)

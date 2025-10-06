@@ -10,7 +10,13 @@ def enable_commands(client):
     # /help
     @client.tree.command(name="help", description="Get info about Jaquavius bot")
     async def help(interaction: discord.Interaction):
-        await interaction.response.send_message("*I am Jaquavius, provider of quotes!*\n\nI send a quote when I hear my name. By default, I'll also send a quote every 24hrs.\n\n__*Commands*__\n\nquote: Sends a quote\nauto-quote: Allows you to enable/disable automatic quotes and set the interval (minutes)", ephemeral=True)
+        help_embed = discord.Embed(
+            title="I am Jaquavius, provider of quotes!",
+            description="*I send a quote when I hear my name. By default, I'll also send a quote every 24hrs.*\n\n\n*Commands*\n\nQuote: Sends a quote\nAuto-quote: Allows you to enable/disable automatic quotes and set the interval (minutes)",
+            color=discord.Color.blue()
+        )
+        await interaction.response.send_message(embed=help_embed, ephemeral=True)
+        # await interaction.response.send_message("> *I am Jaquavius, provider of quotes!*\n\nI send a quote when I hear my name. By default, I'll also send a quote every 24hrs.\n\n__*Commands*__\n\nQuote: Sends a quote\nAuto-quote: Allows you to enable/disable automatic quotes and set the interval (minutes)", ephemeral=True)
 
     # /quote
     @client.tree.command(name="quote", description="Send a random quote")
@@ -20,18 +26,21 @@ def enable_commands(client):
     # /auto-quote
     @client.tree.command(name="auto-quote", description="Sends a quote periodically")
     @app_commands.describe(
-        enable="Enable or disable auto-quote",
+        toggle_on_off="Enable or disable auto-quote",
         interval="Specify quote interval in minutes (Default: 1 day)"
     )
-    async def auto_quote(interaction: discord.Interaction, enable: bool = True, interval: int = 60 * 24):
+    async def auto_quote(interaction: discord.Interaction, toggle_on_off: bool = True, interval: int = 60 * 24):
         channel = interaction.channel
-        if enable:
+        if toggle_on_off:
             if channel.id in quote_tasks:
                 quote_tasks[channel.id].cancel()
             
-            task = asyncio.create_task(send_quotes(channel, interval))
-            quote_tasks[channel.id] = task
-            await interaction.response.send_message(f"✅ _Auto-quote enabled every {interval} minutes_")
+            if interval > 0:
+                task = asyncio.create_task(send_quotes(channel, interval))
+                quote_tasks[channel.id] = task
+                await interaction.response.send_message(f"✅ _Auto-quote enabled every {interval} minutes_")
+            else:
+                await interaction.response.send_message("Please enter a postive integer!", ephemeral=True)
         else:
             if channel.id in quote_tasks:
                 quote_tasks[channel.id].cancel()

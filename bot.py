@@ -15,8 +15,8 @@ class Client(commands.Bot):
     async def on_ready(self):
         #SYNC COMMANDS
         try:
-            synced = await self.tree.sync(guild=GUILD_ID)
-            print(f"Synced {len(synced)} command(s) to guild {GUILD_ID}")
+            synced = await self.tree.sync()
+            print(f"Synced {len(synced)} command(s)")
         except Exception as e:
             print(f"Error syncing commands: {e}")
 
@@ -29,6 +29,17 @@ class Client(commands.Bot):
         
         if 'jaq' in message.content.lower():
             await message.channel.send(get_response())
+
+        #Log messages
+        with open("message_log.txt", "a", encoding="utf-8") as log:
+            user_message = message.content.encode("utf-8", errors="replace").decode("utf-8")  #Handle unknown characters
+            if message.guild is None:
+                log.write(f"{message.author} @ DM: {user_message}")
+            else:
+                log.write(f"{message.author} @ {message.guild}: {user_message}")
+
+            log.write('\n')
+            
 
 intents = discord.Intents.default()
 intents.message_content = True

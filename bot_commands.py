@@ -12,16 +12,18 @@ def enable_commands(client):
     async def help(interaction: discord.Interaction):
         help_embed = discord.Embed(
             title="I am Jaquavius, provider of quotes!",
-            description="*I send a quote when I hear my name. By default, I'll also send a quote every 24hrs.*\n\n\n*Commands*\n\nQuote: Sends a quote\nAuto-quote: Allows you to enable/disable automatic quotes and set the interval (minutes)",
+            description="*I send a quote when I hear my name. I can also send quotes periodically.*\n\n\n*Commands*\n\nQuote: Sends a quote\nAuto-quote: Allows you to enable/disable automatic quotes and set the interval (minutes)",
             color=discord.Color.blue()
         )
         await interaction.response.send_message(embed=help_embed, ephemeral=True)
-        # await interaction.response.send_message("> *I am Jaquavius, provider of quotes!*\n\nI send a quote when I hear my name. By default, I'll also send a quote every 24hrs.\n\n__*Commands*__\n\nQuote: Sends a quote\nAuto-quote: Allows you to enable/disable automatic quotes and set the interval (minutes)", ephemeral=True)
 
     # /quote
     @client.tree.command(name="quote", description="Send a random quote")
     async def send_quote(interaction: discord.Interaction):
-        await interaction.response.send_message(get_response())
+        try:
+            await interaction.response.send_message(get_response())
+        except discord.errors.NotFound:
+            print("Please wait while data.json populates with quotes")
 
     # /auto-quote
     @client.tree.command(name="auto-quote", description="Sends a quote periodically")
@@ -47,7 +49,7 @@ def enable_commands(client):
                 del quote_tasks[channel.id]
                 await interaction.response.send_message(f"🛑 _Auto-quote disabled_")
             else:
-                await interaction.response.send_message("Auto-quote is not running in this channel.")
+                await interaction.response.send_message("Auto-quote is not running in this channel")
 
 
 async def send_quotes(channel, interval):

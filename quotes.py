@@ -7,17 +7,18 @@ import json
 main_url: str = "https://libquotes.com/"
 
 #Quote types
-subsection = ['passion-quotes', 'learn-quotes', 'pain-quotes', 'dr-seuss', 'marcus-aurelius', 'hank-aaron', 'a-a-milne']
+subsection = ['passion-quotes', 'change-quotes', 'pain-quotes', 'dr-seuss', 'thought-quotes', 'marcus-aurelius', 'a-a-milne']
 
 def fetch_quote() -> list:
     data = []
 
+    #Load from json or create new one
     try:
-        with open("data.json", "r") as f:
+        with open("data.json", "r", encoding="utf-8") as f:
             data = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        with open("data.json", "w") as f:
-            json.dump(data, f)
+        with open("data.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
     
     if data == []:
         for section in subsection:
@@ -45,11 +46,14 @@ def fetch_quote() -> list:
                 quote_divs: list = soup.find_all("div", class_="panel-body")
                 for div in quote_divs:
                     quote: str = div.find("span", class_="quote_span").text.strip()
-                    # author: str = div.find("span", class_="fda").text.strip()
-                    
+                    try:
+                        author: str = div.find("span", class_="fda").text.strip()
+                    except:
+                        author: str = div.find_all("a")[-1].text.strip()
+                                        
                     #Append to list if quote doesn't exceed character limit
                     if len(quote) <= 100:
-                        data.append([quote])
+                        data.append([quote, author])
 
                 #Check if there are more pages
                 next_page = True if page_number < last_page else False    
@@ -60,13 +64,12 @@ def fetch_quote() -> list:
                 if not next_page:
                     break
         
-        with open("data.json", "w") as f:
-            json.dump(data, f, indent=4)
+        #Write to json
+        with open("data.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
 
     return data if data else []
     
 def get_random_quote(quote_list) -> str:    
     random_value = random.randint(0, len(quote_list))
     return (f"*{quote_list[random_value][0]}*")
-
-fetch_quote()

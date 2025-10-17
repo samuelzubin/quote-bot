@@ -4,11 +4,24 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from responses import get_response
 import bot_commands
+import threading
+from flask import Flask
 
 #LOAD ENVIRONMENT VARIABLES
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD_ID = discord.Object(id=int(os.getenv('GUILD_ID')))
+
+#SET UP WEB SERVER
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run_web_server():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
 
 
 class Client(commands.Bot):
@@ -27,7 +40,7 @@ class Client(commands.Bot):
         if message.author == self.user:
             return
         
-        if 'jaq' in message.content.lower():
+        if 'jaquav' in message.content.lower():
             await message.channel.send(get_response())
 
         #Log messages
@@ -47,5 +60,6 @@ client = Client(command_prefix="!", intents=intents)
 
 bot_commands.enable_commands(client)
 
-
-client.run(token=TOKEN)
+if __name__ == '__main__':
+    threading.Thread(target=run_web_server, daemon=True).start()
+    client.run(token=TOKEN)

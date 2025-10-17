@@ -40,7 +40,10 @@ def enable_commands(client):
             if interval > 0:
                 task = asyncio.create_task(send_quotes(channel, interval))
                 quote_tasks[channel.id] = task
-                await interaction.response.send_message(f"✅ _Auto-quote enabled every {interval} minutes_")
+                if interval == 1:
+                    await interaction.response.send_message(f"✅ _Auto-quote enabled every minute_")
+                else:
+                    await interaction.response.send_message(f"✅ _Auto-quote enabled every {interval} minutes_")
             else:
                 await interaction.response.send_message("Please enter a postive integer!", ephemeral=True)
         else:

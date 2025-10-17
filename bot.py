@@ -6,11 +6,13 @@ from responses import get_response
 import bot_commands
 import threading
 from flask import Flask
+import time
+import requests
 
 #LOAD ENVIRONMENT VARIABLES
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-GUILD_ID = discord.Object(id=int(os.getenv('GUILD_ID')))
+PING_URL = os.getenv('PING_URL')
 
 #SET UP WEB SERVER
 app = Flask(__name__)
@@ -21,8 +23,17 @@ def home():
 
 def run_web_server():
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, use_reloader=False, threaded=True)
 
+def ping(url):
+    #Periodically pings flask server to prevent bot from going offline
+    while True:
+        try:
+            requests.get(url)
+            print("Pinged web server to stay alive")
+        except Exception as e:
+            print("Failed to ping web server:", e)
+        time.sleep(5 * 60)  # ping every 5 minutes
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -62,4 +73,10 @@ bot_commands.enable_commands(client)
 
 if __name__ == '__main__':
     threading.Thread(target=run_web_server, daemon=True).start()
+
+    if PING_URL:
+        threading.Thread(target=ping, args=(PING_URL,), daemon=True).start()
+    else:
+        print("PING_URL could not be found in .env")
+
     client.run(token=TOKEN)

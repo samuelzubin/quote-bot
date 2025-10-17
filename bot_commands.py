@@ -12,7 +12,7 @@ def enable_commands(client):
     async def help(interaction: discord.Interaction):
         help_embed = discord.Embed(
             title="I am Jaquavius, provider of quotes!",
-            description="*I send a quote when I hear my name. I can also send quotes periodically.*\n\n\n*Commands*\n\nQuote: Sends a quote\nAuto-quote: Allows you to enable/disable automatic quotes and set the interval (minutes)",
+            description="*I send a quote when I hear my name. I can also send quotes periodically.*\n\n\n**Commands**\n\nQuote: Sends a quote\n\nAuto-quote: Allows you to enable/disable automatic quotes and set the interval (minutes)",
             color=discord.Color.blue()
         )
         await interaction.response.send_message(embed=help_embed, ephemeral=True)

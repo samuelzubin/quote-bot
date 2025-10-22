@@ -6,8 +6,8 @@ import json
 #Website URL
 main_url: str = "https://libquotes.com/"
 
-#Quote types
-subsection = ['passion-quotes', 'change-quotes', 'pain-quotes', 'dr-seuss', 'thought-quotes', 'marcus-aurelius', 'a-a-milne']
+#Quote keywords
+subsection = ['change-quotes', 'pain-quotes', 'thought-quotes', 'time-quotes', 'learn-quotes']
 
 def fetch_quote() -> list:
     data = []
@@ -39,7 +39,7 @@ def fetch_quote() -> list:
             #Get all quotes on all pages
             while True:
                 url: str = main_url + section + "/" + str(page_number)
-                page = requests.get(url)
+                page: requests.Response = requests.get(url)
                 soup = BeautifulSoup(page.content, "html.parser")
 
                 #Get quotes and authors

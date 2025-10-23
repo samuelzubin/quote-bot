@@ -69,10 +69,12 @@ class Client(commands.Bot):
             await asyncio.sleep(delay / 2)
             await msg.edit(content="^_^")
             await asyncio.sleep(delay)
-            
 
             #Reply with quote
             await message.reply(get_response())
+
+            #Delete reaction after some time
+            await msg.delete(delay=60)
 
         #Log messages
         with open("message_log.txt", "a", encoding="utf-8") as log:

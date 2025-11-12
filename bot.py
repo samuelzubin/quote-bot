@@ -9,6 +9,7 @@ from flask import Flask
 import time
 import requests
 import asyncio
+import random
 from datetime import timedelta
 
 #LOAD ENVIRONMENT VARIABLES
@@ -35,7 +36,7 @@ def ping(url) -> None:
             print("Pinged web server")
         except Exception as e:
             print("Failed to ping web server:", e)
-        time.sleep(10 * 60)  # ping every 10 minutes
+        time.sleep(5 * 60)  # ping every 5 minutes
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -43,11 +44,33 @@ class Client(commands.Bot):
         try:
             synced = await self.tree.sync()
             print(f"Synced {len(synced)} command(s)")
+
         except Exception as e:
             print(f"Error syncing commands: {e}")
 
+        self.activity_task = asyncio.create_task(self.update_status())
 
         print(f"{self.user.display_name} is online!")
+
+    async def update_status(self):
+        activities: list = [
+            None,
+            discord.CustomActivity(name="Watching the world burn 🔥"),
+            discord.Game(name="Vscode"),
+            discord.CustomActivity(name="What temperature is twice as hot as 0°C?"),
+            discord.Activity(type=discord.ActivityType.listening, name="🎵 Jaquavius' Lofi Beats"),
+            discord.CustomActivity(name="Every second you're not running, I'm getting closer"),
+            discord.CustomActivity(name="Why sleep when you could be solving differential equations?"),
+            discord.Streaming(name="🎬 My favorite video", url="https://www.youtube.com/watch?v=EE-xtCF3T94")
+        ]
+
+        activity_weights: list = [5, 1, 1, 1, 1, 1, 1, 1]
+
+        while True:
+            next_activity: discord.Activity = random.choices(activities, weights=activity_weights, k=1)[0]
+            await self.change_presence(status=discord.Status.online, activity=next_activity)
+            # print(f"Changed activity to: {next_activity.name}")
+            await asyncio.sleep(30 * 60)  # time before switching
 
     async def on_message(self, message: discord.Message):
         if message.author == self.user:
@@ -74,12 +97,12 @@ class Client(commands.Bot):
             await message.reply(get_response())
 
             #Delete reaction after some time
-            await msg.delete(delay=60)
+            await msg.delete(delay=10)
 
         #Log messages
         with open("message_log.txt", "a", encoding="utf-8") as log:
-            user_message: str = message.content.encode("utf-8", errors="replace").decode("utf-8")  #Handle unknown characters
-            message_time: str = (message.created_at - timedelta(hours=7)).strftime('%b %d %H:%M:%S')  #Formate time for UTC-7
+            user_message: str = message.content.encode("utf-8", errors="replace").decode("utf-8")  # Handle unknown characters
+            message_time: str = (message.created_at - timedelta(hours=7)).strftime('%b %d %H:%M:%S')  # Formate time for UTC-7
             
             if message.guild is None:
                 message_location: str = "DM"

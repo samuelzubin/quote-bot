@@ -26,7 +26,7 @@ def enable_commands(client):
             print("Please wait while data.json populates with quotes")
 
     # /auto-quote
-    @client.tree.command(name="auto-quote", description="Summon Jaquavius' true power and send a quote periodically")
+    @client.tree.command(name="auto-quote", description="Send a quote periodically")
     @app_commands.describe(
         toggle_on_off="Enable or disable auto-quote",
         interval="Specify quote interval in minutes (Default: 1 day)"

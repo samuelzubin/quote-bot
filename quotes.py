@@ -35,7 +35,7 @@ def fetch_quote() -> list:
                                     
                 #Append to list if quote doesn't exceed character limit
                 if len(quote) <= 100:
-                    pattern = r"^(.*?[\.!?])\s+([A-Z][A-Za-z\.\'\-éèáàïü\s]+)$"
+                    pattern = r"^(.*?[\.!?])\s+([A-Z][A-Za-z\.\'\-éèáàïü\s]+)$"  #Separate quote and author (with great difficulty)
                     match: re.Match = re.match(pattern, quote.strip())
                     try:
                         data.append([match.group(1), match.group(2)])

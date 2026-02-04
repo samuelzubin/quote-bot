@@ -1,14 +1,21 @@
 import asyncio
 import discord
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from discord import app_commands
 from responses import get_response
 from scheduling import QuoteScheduler
 
+TIMEZONE = ZoneInfo('America/Los_Angeles')
 
 auto_quote_tasks = {}
-scheduled_quote_tasks = {}
-
+scheduled_quote_tasks: dict = {} # Key: channel id | Value: list of tasks
+months_choices = [
+    app_commands.Choice(name="January", value='01'), app_commands.Choice(name="February", value='02'), app_commands.Choice(name="March", value='03'), 
+    app_commands.Choice(name="April", value='04'), app_commands.Choice(name="May", value='05'), app_commands.Choice(name="June", value='06'),
+    app_commands.Choice(name="July", value='07'), app_commands.Choice(name="August", value='08'), app_commands.Choice(name="September", value='09'), 
+    app_commands.Choice(name="October", value='10'), app_commands.Choice(name="November", value='11'), app_commands.Choice(name="December", value='12')
+]
 #SLASH COMMANDS
 def enable_commands(client):
     # /help
@@ -67,40 +74,63 @@ def enable_commands(client):
                 
     @client.tree.command(name="schedule", description="Allows you to schedule quotes at specific dates and times")
     @app_commands.describe(
-        schedule="Specify date and time (in PT) to schedule quote (Format: MM-DD-YY HH:MM)",
+        month="Select month from dropdown",
+        day="Type day as a number (No Leading Zeros)",
+        time="Type time in HH:MM (Military Time) format",
         interval="Specify interval for quote to reoccur in days (Default: 1 day) (Type 0 for one-time only)",
-        enable="Enable (True) or disable (False) scheduled quotes"
     )
-    async def schedule_quote(interaction: discord.Interaction, schedule: str, interval: int = 1, enable: bool = True):
+    @app_commands.choices(month=months_choices)
+    async def schedule_quote(interaction: discord.Interaction, month: app_commands.Choice[str], day: int, time: str, interval: int = 1):
+        # await interaction.response.send_message(f"parameters: {dates}, {interval}, {is_enable}", ephemeral=True)
+        # First parse the string and add to a list of datetime objects
+        
+        # If one of the time is invalid, return an error message
         channel = interaction.channel
-        if enable:
-            if channel.id in scheduled_quote_tasks:
-                scheduled_quote_tasks[channel.id].cancel()
-                
-            scheduler = QuoteScheduler(interval)
-            if not scheduler.is_valid_interval():
-                await interaction.response.send_message("Interval must be 0 or greater!", ephemeral=True)
-                return
-            if not scheduler.is_valid_schedule(schedule):
-                await interaction.response.send_message("Invalid date/time format! Please use MM-DD-YY HH:MM or MM-DD HH:MM (Military Time)", ephemeral=True)
-                return
-            
-            
-            delay = scheduler.calculate_delay(datetime.now()) # schedule date - current date in seconds
-            if delay < 0:
-                await interaction.response.send_message("Scheduled time must be in the future!", ephemeral=True)
-                return
-            task = asyncio.create_task(send_scheduled_quotes(channel, delay, interval))
-            scheduled_quote_tasks[channel.id] = task
-            await interaction.response.send_message(f"✅ _Scheduled quotes enabled starting {scheduler.to_string()} every {interval} day(s)_")
-            
+        
+        formatted_date = f"{month.value}-{day}-{datetime.now(tz=TIMEZONE).year} {time}" 
+
+        scheduler = QuoteScheduler(interval, TIMEZONE)
+        if not scheduler.is_valid_interval():
+            await interaction.response.send_message("Interval must be 0 or greater!", ephemeral=True)
+            return
+        if not scheduler.is_valid_schedule(formatted_date):
+            await interaction.response.send_message("Invalid date/time format! Please use HH:MM (Military Time)", ephemeral=True)
+            return
+        
+        
+        delay = scheduler.calculate_delay(datetime.now(tz=TIMEZONE)) # schedule date - current date in seconds
+        task = asyncio.create_task(send_scheduled_quotes(channel, delay, interval))
+        if channel.id not in scheduled_quote_tasks:
+            scheduled_quote_tasks[channel.id] = []
+        
+        if interval == 0:
+            response = f"_Scheduled one-time quote for {scheduler.to_string()}_"
         else:
-            if channel.id in scheduled_quote_tasks:
-                scheduled_quote_tasks[channel.id].cancel()
-                del scheduled_quote_tasks[channel.id]
-                await interaction.response.send_message(f"🛑 _Scheduled quotes disabled_")
-            else:
-                await interaction.response.send_message("_Scheduled quotes are already disabled_", ephemeral=True)
+            response = f"_Scheduled quotes starting {scheduler.to_string()} every {interval} day(s)_"
+        scheduled_quote_tasks[channel.id].append((task, response))
+        await interaction.response.send_message(response)
+            
+                
+    @client.tree.command(name="list_schedule", description="Check your scheduled quotes")
+    async def schedule_list(interaction: discord.Interaction):
+        channel = interaction.channel
+        if channel.id in scheduled_quote_tasks and scheduled_quote_tasks[channel.id]:
+            response = "📅 __**Scheduled Quotes:**__\n"
+            for i, (task, desc) in enumerate(scheduled_quote_tasks[channel.id], start=1):
+                response += f"{i}. {desc}\n"
+            await interaction.response.send_message(response)
+        else:
+            await interaction.response.send_message("_No scheduled quotes for this channel_", ephemeral=True)
+            
+    @client.tree.command(name="delete_schedule", description="Delete the last scheduled quote")
+    async def schedule_delete(interaction: discord.Interaction):
+        channel = interaction.channel
+        if channel.id in scheduled_quote_tasks:
+            recent_task = scheduled_quote_tasks[channel.id].pop()
+            recent_task[0].cancel()
+            await interaction.response.send_message(f"🛑 Disabled {recent_task[1]}")
+        else:
+            await interaction.response.send_message("_Scheduled quotes are already disabled for this channel_", ephemeral=True)
     
 
 async def send_quotes(channel, interval):
@@ -115,6 +145,7 @@ async def send_scheduled_quotes(channel, delay, interval):
     try:
         await asyncio.sleep(delay)
         await channel.send(get_response())
-        send_quotes(channel, interval)
+        if interval > 0: # If interval is 0, do not reschedule
+            await send_quotes(channel, interval*24*60) # convert days to hours
     except asyncio.CancelledError:
-        return
+        pass

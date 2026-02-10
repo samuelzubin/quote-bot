@@ -125,12 +125,12 @@ def enable_commands(client):
     @client.tree.command(name="delete_schedule", description="Delete the last scheduled quote")
     async def schedule_delete(interaction: discord.Interaction):
         channel = interaction.channel
-        if channel.id in scheduled_quote_tasks:
+        if channel.id not in scheduled_quote_tasks or not scheduled_quote_tasks[channel.id]:
+            await interaction.response.send_message("_Scheduled quotes are already disabled for this channel_", ephemeral=True)
+        else:
             recent_task = scheduled_quote_tasks[channel.id].pop()
             recent_task[0].cancel()
             await interaction.response.send_message(f"🛑 Disabled {recent_task[1]}")
-        else:
-            await interaction.response.send_message("_Scheduled quotes are already disabled for this channel_", ephemeral=True)
     
 
 async def send_quotes(channel, interval):
